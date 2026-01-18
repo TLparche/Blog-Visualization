@@ -28,6 +28,28 @@ def show_rgb(x, title=""):
     plt.title(title)
     plt.show()
 
+def show_comparison(original, reconstructed, title="Result"):
+    org = original[0].detach().cpu().clamp(0, 1).permute(1, 2, 0).numpy()
+    rec = reconstructed[0].detach().cpu().clamp(0, 1).permute(1, 2, 0).numpy()
+
+    plt.figure(figsize=(10, 5))
+
+    # 원본 이미지
+    plt.subplot(1, 2, 1)
+    plt.imshow(org)
+    plt.title("Original Image")
+    plt.axis("off")
+
+    # 복원된 이미지
+    plt.subplot(1, 2, 2)
+    plt.imshow(rec)
+    plt.title("Reconstructed Image")
+    plt.axis("off")
+
+    plt.suptitle(title, fontsize=16)
+    plt.tight_layout()
+    plt.show()
+
 
 def show_feature(feat1, title1, feat2, title2, max_ch=16):
     rows = 4
@@ -147,10 +169,13 @@ def visualize(image_path):
     # 학습 후 모델
     model.eval()
     with torch.no_grad():
-        _, outs_trained = model(x)
+        reconstruct_img, outs_trained = model(x)
 
     show_feature(outs_trained["enc1"], "Trained Enc1", outs_trained["enc2"], "Trained Enc2")
     show_feature(outs_trained["enc3"], "Trained Enc3", outs_trained["latent"], "Trained Latent")
+
+    x = load_image(image_path, IMG_SIZE).to(DEVICE)
+    show_comparison(x, reconstruct_img)
 
 
 IMG_PATH = "../resource/SpeakIncoder.jpg"
