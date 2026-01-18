@@ -26,21 +26,37 @@ def show_rgb(x, title=""):
     plt.title(title)
     plt.show()
 
-def show_feature(feat, max_ch=16, title=""):
-    C = feat.shape[1]
-    n = min(C, max_ch)
-    cols = int(math.sqrt(n))
-    rows = int(math.ceil(n / cols))
+def show_feature(feat1, title1, feat2, title2, max_ch=16):
+    rows = 4
+    cols = 9
 
-    plt.figure(figsize=(2.2*cols, 2.2*rows))
-    for i in range(n):
-        plt.subplot(rows, cols, i+1)
-        plt.imshow(feat[0, i].detach().cpu().numpy(), cmap="gray")
+    plt.figure(figsize=(10, 5))
+
+    n1 = min(feat1.shape[1], max_ch)
+    for i in range(n1):
+        r = i // 4
+        c = i % 4
+        idx = r * cols + c + 1
+
+        plt.subplot(rows, cols, idx)
+        plt.imshow(feat1[0, i].detach().cpu().numpy(), cmap="gray")
         plt.axis("off")
-        plt.title(f"ch {i}", fontsize=9)
 
-    plt.suptitle(f"{title}\nshape={tuple(feat.shape)}", y=1.02)
-    plt.tight_layout()
+    n2 = min(feat2.shape[1], max_ch)
+    for i in range(n2):
+        r = i // 4
+        c = i % 4
+        idx = r * cols + (c + 5) + 1
+
+        plt.subplot(rows, cols, idx)
+        plt.imshow(feat2[0, i].detach().cpu().numpy(), cmap="gray")
+        plt.axis("off")
+
+    plt.subplots_adjust(left=0.05, right=0.95)
+
+    plt.figtext(0.25, 0.92, title1, ha='center', fontsize=14)
+    plt.figtext(0.75, 0.92, title2, ha='center', fontsize=14)
+
     plt.show()
 
 # 인코더 모델 정의
@@ -82,8 +98,8 @@ def visualize(image_path, ch_to_show=0, grid_ch=16):
 
     show_rgb(x, "Input")
 
-    for name, feat in outs.items():
-        show_feature(feat, max_ch=grid_ch, title=name)
+    show_feature(outs["enc1"], "enc1", outs["enc2"], "enc2")
+    show_feature(outs["enc3"], "enc3", outs["latent"], "latent")
 
 
 IMG_PATH = "../resource/SpeakIncoder.jpg"
