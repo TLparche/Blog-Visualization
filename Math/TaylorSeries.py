@@ -9,6 +9,7 @@ from sympy.parsing.sympy_parser import (
     implicit_multiplication_application,
     convert_xor,
 )
+from sympy import latex
 
 DEFAULT_XRANGE = (-5.0, 5.0)
 DEFAULT_YRANGE = (-2.0, 2.0)
@@ -95,6 +96,12 @@ def safe_eval(f, xs):
     except Exception:
         return np.full_like(xs, np.nan)
 
+def taylor_expr(expr: sp.Expr, a: float, n: int) -> sp.Expr:
+    series = 0
+    for k in range(n + 1):
+        series += sp.diff(expr, x, k).subs(x, a) / sp.factorial(k) * (x - a) ** k
+    return sp.simplify(series)
+
 class TaylorUI:
     def __init__(self):
         self.expr_str = "sin(x)"
@@ -152,7 +159,7 @@ class TaylorUI:
         self.ax_n = self.fig.add_axes((0.12, 0.085, 0.62, 0.05))
         self.sl_n = Slider(self.ax_n, "degree n", 0, MAX_N, valinit=self.n, valstep=1)
 
-        self.status = self.fig.text(0.08, 0.03, "", fontsize=10)
+        self.status = self.fig.text(0.08, 0.03, "", fontsize=12, va="bottom", ha="left")
 
     def _msg(self, s):
         self.status.set_text(s)
@@ -178,6 +185,12 @@ class TaylorUI:
         self.ax.set_xlim(*self.xrange)
         self.ax.set_ylim(*self.yrange)
         self.ax.set_title(f"Taylor about a={self.a:.4g}, n={int(self.sl_n.val)}")
+
+        t_expr = taylor_expr(self.expr, self.a, int(self.sl_n.val))
+        fx_tex = latex(self.expr)
+        tx_tex = latex(t_expr)
+
+        self._msg(f"$f(x)={fx_tex}\quad,\quad T_{{{int(self.sl_n.val)}}}(x)={tx_tex}$")
 
         self.fig.canvas.draw_idle()
 
