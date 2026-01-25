@@ -1,3 +1,12 @@
+'''
+실행방법
+터미널에서 이 디렉토리로 오신 뒤에
+python .\TaylorSeries.py
+실행하시면 댑니다.
+
+변수 변경하시고 버튼 누르신다음에 refresh 누르셔야 그래프 그려져용
+'''
+
 import re
 import numpy as np
 import sympy as sp
