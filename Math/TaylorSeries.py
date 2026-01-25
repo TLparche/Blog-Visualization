@@ -100,7 +100,7 @@ def taylor_expr(expr: sp.Expr, a: float, n: int) -> sp.Expr:
     series = 0
     for k in range(n + 1):
         series += sp.diff(expr, x, k).subs(x, a) / sp.factorial(k) * (x - a) ** k
-    return sp.simplify(series)
+    return series
 
 class TaylorUI:
     def __init__(self):
@@ -126,12 +126,16 @@ class TaylorUI:
         self.btn_fx.on_clicked(self._apply_fx)
         self.btn_rng.on_clicked(self._apply_ranges)
         self.btn_a.on_clicked(self._apply_a)
-        self.sl_n.on_changed(lambda _: self._redraw())
+
+        self.pending_n = int(self.sl_n.val)
+        self.sl_n.on_changed(self._on_n_change)
 
         self.tb_fx.on_submit(lambda _: self._apply_fx(None))
         self.tb_xr.on_submit(lambda _: self._apply_ranges(None))
         self.tb_yr.on_submit(lambda _: self._apply_ranges(None))
         self.tb_a.on_submit(lambda _: self._apply_a(None))
+
+        self.btn_refresh.on_clicked(lambda _: self._redraw(full = True))
 
         self._set_fx(self.expr_str)
 
@@ -161,6 +165,9 @@ class TaylorUI:
 
         self.status = self.fig.text(0.08, 0.03, "", fontsize=12, va="bottom", ha="left")
 
+        self.ax_refresh = self.fig.add_axes((0.82, 0.085, 0.12, 0.05))
+        self.btn_refresh = Button(self.ax_refresh, "Refresh")
+
     def _msg(self, s):
         self.status.set_text(s)
         self.fig.canvas.draw_idle()
@@ -170,13 +177,14 @@ class TaylorUI:
         self.f_num = sp.lambdify(x, self.expr, "numpy")
         self.expr_str = s
         self._msg(f"OK: f(x) = {sp.sstr(self.expr)}")
-        self._redraw()
 
-    def _redraw(self):
+    def _redraw(self, full = False):
+        n = int(self.pending_n)
+
         xs = np.linspace(*self.xrange, POINTS)
         y_true = safe_eval(self.f_num, xs)
         d = derivs_at(self.expr, self.a, MAX_N)
-        y_tay = taylor_eval(xs, self.a, d, int(self.sl_n.val))
+        y_tay = taylor_eval(xs, self.a, d, n)
 
         self.line_true.set_data(xs, y_true)
         self.line_tay.set_data(xs, y_tay)
@@ -184,14 +192,10 @@ class TaylorUI:
 
         self.ax.set_xlim(*self.xrange)
         self.ax.set_ylim(*self.yrange)
-        self.ax.set_title(f"Taylor about a={self.a:.4g}, n={int(self.sl_n.val)}")
+        self.ax.set_title(f"Taylor about a={self.a:.4g}, n={n}")
 
-        t_expr = taylor_expr(self.expr, self.a, int(self.sl_n.val))
-        fx_tex = latex(self.expr)
-        tx_tex = latex(t_expr)
-
-        self._msg(f"$f(x)={fx_tex}\quad,\quad T_{{{int(self.sl_n.val)}}}(x)={tx_tex}$")
-
+        if full:
+            self._update_latex(n)
         self.fig.canvas.draw_idle()
 
     def _apply_fx(self, _):
@@ -205,7 +209,7 @@ class TaylorUI:
             self.xrange = parse_range(self.tb_xr.text, "x range")
             self.yrange = parse_range(self.tb_yr.text, "y range")
             self._msg(f"x={self.xrange}, y={self.yrange}")
-            self._redraw()
+
         except Exception as e:
             self._msg(str(e))
 
@@ -213,9 +217,26 @@ class TaylorUI:
         try:
             self.a = parse_float(self.tb_a.text, "a")
             self._msg(f"a = {self.a}")
-            self._redraw()
+
         except Exception as e:
             self._msg(str(e))
+
+    def _on_n_change(self, _):
+        self.pending_n = int(self.sl_n.val)
+        self.ax.set_title(f"Taylor about a={self.a:.4g}, n={self.pending_n} (pending)")
+        self.fig.canvas.draw_idle()
+
+    def _update_latex(self, n: int):
+        t_expr = taylor_expr(self.expr, self.a, n)
+
+        fx_tex = latex(self.expr)
+        tx_tex = latex(t_expr, fold_short_frac=True)
+
+        MAX_CHARS = 300
+        if len(tx_tex) > MAX_CHARS:
+            tx_tex = tx_tex[:MAX_CHARS] + r"\;\cdots"
+
+        self._msg(rf"$f(x)={fx_tex}$" + "\n" + rf"$T_{{{n}}}(x)={tx_tex}$")
 
 def main():
     TaylorUI()
