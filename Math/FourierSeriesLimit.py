@@ -11,9 +11,11 @@ def get_time_signal(t, T, tau):
     return np.where(np.abs(t_mod) <= tau / 2, 1, 0)
 
 
-def get_freq_spectrum(T, tau, n_harmonics=30):
+def get_freq_spectrum(T, tau, f_limit=5.0):
     f0 = 1 / T
-    ns = np.arange(-n_harmonics, n_harmonics + 1)
+
+    n_needed = int(f_limit * T) + 2
+    ns = np.arange(-n_needed, n_needed + 1)
     freqs = ns * f0
 
     c_n = (tau / T) * np.sinc(freqs * tau)
