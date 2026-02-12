@@ -40,35 +40,43 @@ def compute_fft_precise(x, fs, n_fft=2048):
 
     X = np.fft.fft(x_windowed, n=n_fft)
     X_real = np.real(X) * scale_factor
+    X_mag = np.abs(X) * scale_factor
+
 
     freqs = np.fft.fftfreq(n_fft, d=1 / fs)
     shift_idx = np.argsort(freqs)
 
-    return freqs[shift_idx], X_real[shift_idx]
+    return freqs[shift_idx], X_real[shift_idx], X_mag[shift_idx]
 
 
-fig = plt.figure(figsize=(16, 12))
-gs = GridSpec(3, 2, figure=fig, height_ratios=[0.8, 1, 1], hspace=0.4, wspace=0.15)
+fig = plt.figure(figsize=(20, 12))
+gs = GridSpec(3, 3, figure=fig, height_ratios=[0.8, 1, 1], hspace=0.4, wspace=0.15)
 
 ax_time = fig.add_subplot(gs[0, :])
 ax_ov1 = fig.add_subplot(gs[1, 0])
 ax_sum1 = fig.add_subplot(gs[1, 1])
+ax_mag1 = fig.add_subplot(gs[1, 2])
 ax_ov2 = fig.add_subplot(gs[2, 0])
 ax_sum2 = fig.add_subplot(gs[2, 1])
+ax_mag2 = fig.add_subplot(gs[2, 2])
 
 
-def setup_ax(ax, title, is_time=True):
+def setup_ax(ax, title, mode="time"):
     ax.grid(True, alpha=0.3)
     ax.axhline(0, color='black', linewidth=0.8)
     ax.set_title(title, fontsize=11, pad=5)
-    if is_time:
+
+    if mode == "time":
         ax.set_xlim(0, 0.4)
         ax.set_ylabel("Amplitude")
-    else:
+    elif mode == "real":
         ax.set_xlim(0, 45)
         ax.set_ylim(-1.2, 1.2)
         ax.set_ylabel("Real Part")
-
+    elif mode == "mag":
+        ax.set_xlim(0, 45)
+        ax.set_ylim(0, 1.5)
+        ax.set_ylabel("Magnitude (Abs)")
 
 t_cont = np.arange(0, t_duration, 1 / 2000)
 
@@ -92,53 +100,69 @@ def update_plot(expression, fs1, fs2):
     ax_time.scatter(t2, y2, color='r', s=15, marker='x', label=f'Fs2={fs2:.0f}Hz')
     ax_time.legend(loc='upper right')
 
-    f_high, real_high = compute_fft_precise(y_cont, 2000)
-    f_real1, m_real1 = compute_fft_precise(y1, fs1, 4096)
-    f_real2, m_real2 = compute_fft_precise(y2, fs2, 4096)
+    f_high, r_high, m_high = compute_fft_precise(y_cont, 2000)
+    f_real1, r_real1, m_real1 = compute_fft_precise(y1, fs1, 4096)
+    f_real2, r_real2, m_real2 = compute_fft_precise(y2, fs2, 4096)
 
-    def plot_freq_pair(ax_ov, ax_sum, fs, f_real, m_real, color, label_prefix):
+    def plot_freq_pair(ax_ov, ax_sum, ax_mag, fs, f_res, r_res, m_res, color, label_prefix):
         ax_ov.cla()
         ax_sum.cla()
-        setup_ax(ax_ov, f"[{label_prefix}] Overlap Process", False)
-        setup_ax(ax_sum, f"[{label_prefix}] Summed Result", False)
+        ax_mag.cla()
+
+        setup_ax(ax_ov, f"[{label_prefix}] Overlap Process", "real")
+        setup_ax(ax_sum, f"[{label_prefix}] Summed Result", "real")
+        setup_ax(ax_mag, f"[{label_prefix}] Final Result", "mag")
 
         replicas = range(0, 4)
         for k in replicas:
             shifted_f = f_high + k * fs
             mask = (shifted_f >= -10) & (shifted_f <= 50)
             f_part = shifted_f[mask]
-            m_part = real_high[mask]
+            r_part = r_high[mask]
 
             if len(f_part) == 0: continue
 
             if k == 0:
-                ax_ov.plot(f_part, m_part, color='k', lw=1.5, alpha=0.8, label='Original')
-                ax_ov.fill_between(f_part, 0, m_part, color='gray', alpha=0.2)
+                ax_ov.plot(f_part, r_part, color='k', lw=1.5, alpha=0.8, label='Original')
+                ax_ov.fill_between(f_part, 0, r_part, color='gray', alpha=0.2)
             else:
-                ax_ov.plot(f_part, m_part, color=color, ls='--', lw=1, alpha=0.6)
+                ax_ov.plot(f_part, r_part, color=color, ls='--', lw=1, alpha=0.6)
 
         view_max = 50
         n_repeat = int(view_max / fs) + 2
         for k in range(n_repeat):
-            shifted_f = f_real + k * fs
+            shifted_f = f_res + k * fs
             sort_idx = np.argsort(shifted_f)
             f_plot = shifted_f[sort_idx]
-            m_plot = m_real[sort_idx]
+            r_plot = r_res[sort_idx]
             mask = (f_plot >= 0) & (f_plot <= 50)
-            ax_sum.plot(f_plot[mask], m_plot[mask], color=color, lw=1.5)
+            ax_sum.plot(f_plot[mask], r_plot[mask], color=color, lw=1.5)
 
         mask_orig = (f_high >= 0) & (f_high <= 50)
-        ax_sum.fill_between(f_high[mask_orig], 0, real_high[mask_orig], color='k', alpha=0.1, label='Original Position')
+        ax_sum.fill_between(f_high[mask_orig], 0, r_high[mask_orig], color='k', alpha=0.1, label='Original Position')
 
-    plot_freq_pair(ax_ov1, ax_sum1, fs1, f_real1, m_real1, 'b', 'Fs1')
-    plot_freq_pair(ax_ov2, ax_sum2, fs2, f_real2, m_real2, 'r', 'Fs2')
+        for k in range(n_repeat):
+            shifted_f = f_res + k * fs
+            sort_idx = np.argsort(shifted_f)
+
+            f_plot = shifted_f[sort_idx]
+            m_plot = m_res[sort_idx]
+
+            mask = (f_plot >= 0) & (f_plot <= 50)
+            ax_mag.plot(f_plot[mask], m_plot[mask], color=color, lw=1.5)
+
+        ax_mag.fill_between(f_high[mask_orig], 0, m_high[mask_orig], color='k', alpha=0.1, label='Original')
+        ax_mag.legend(loc='upper right', fontsize=8)
+
+    plot_freq_pair(ax_ov1, ax_sum1, ax_mag1, fs1, f_real1, r_real1, m_real1, 'b', 'Fs1')
+    plot_freq_pair(ax_ov2, ax_sum2, ax_mag2, fs2, f_real2, r_real2, m_real2, 'r', 'Fs2')
 
     fig.canvas.draw_idle()
 
 
-ax_box = plt.axes([0.15, 0.95, 0.5, 0.04])
-ax_fs1 = plt.axes([0.75, 0.96, 0.2, 0.02])
-ax_fs2 = plt.axes([0.75, 0.93, 0.2, 0.02])
+ax_box = plt.axes((0.15, 0.95, 0.5, 0.04))
+ax_fs1 = plt.axes((0.75, 0.96, 0.2, 0.02))
+ax_fs2 = plt.axes((0.75, 0.93, 0.2, 0.02))
 
 text_box = TextBox(ax_box, 'Signal: ', initial=initial_text)
 s_fs1 = Slider(ax_fs1, 'Fs1', 1.0, 50.0, valinit=fs1_init, valstep=1.0, valfmt='%0.0f Hz')
