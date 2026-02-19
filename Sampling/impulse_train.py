@@ -1,43 +1,56 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def run_sampling_demo():
+    f = 1.0
+    duration = 2.0
+    fs_high = 1000
+    fs = 10
+    Ts = 1 / fs
 
-def plot_impulse_train():
-    # 설정
-    T = 1
-    n_range = 5
-    n = np.arange(-n_range, n_range + 1)
-    t = n * T
+    t = np.linspace(0, duration, int(fs_high * duration))
+    x = np.sin(2 * np.pi * f * t)
 
-    plt.figure(figsize=(10, 5))
+    t_sample = np.arange(0, duration, Ts)
+    impulse = np.ones_like(t_sample)
+    x_sample = np.sin(2 * np.pi * f * t_sample)
 
-    # Impulse Train 그리기 (화살표 스타일)
-    markerline, stemlines, baseline = plt.stem(
-        t, np.ones_like(t),
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 9))
+    plt.subplots_adjust(hspace=0.5)
+
+    ax1.plot(t, x, 'b', lw=1.5, label='$x(t)$')
+    ax1.set_title(r'Continuous Signal $x(t)$')
+    ax1.set_ylabel('Amplitude')
+    ax1.set_xlabel('Time (s)')
+    ax1.legend(loc='upper right')
+
+    markerline, stemlines, baseline = ax2.stem(
+        t_sample, impulse,
         linefmt='k-', markerfmt='k^', basefmt='k-'
     )
+    plt.setp(markerline, markersize=8)
+    ax2.set_title(r'Impulse Train $p(t) = \sum \delta(t - nT)$')
+    ax2.set_ylabel('Impulse')
+    ax2.set_ylim(0, 1.5)
 
-    # 스타일 조정
-    plt.setp(markerline, markersize=10, markerfacecolor='black')
-    plt.setp(stemlines, linewidth=1.5)
-    plt.setp(baseline, visible=False)  # x축 바닥선 숨기기 (취향)
+    tick_labels = ['0'] + ['T'] + [f'{k}T' for k in range(2, len(t_sample))]
+    ax2.set_xticks(t_sample)
+    ax2.set_xticklabels(tick_labels)
+    ax2.set_xlabel('Time (nT)')
 
-    # 축 설정
-    plt.axhline(0, color='black', linewidth=1)
-    plt.ylim(0, 1.5)
-    plt.yticks([0, 1])
+    ax3.plot(t, x, 'b--', alpha=0.3, label='Envelope')
+    ax3.stem(t_sample, x_sample, linefmt='r-', markerfmt='ro', basefmt='k-')
+    ax3.set_title(r'Sampled Output $x_s(t)$')
+    ax3.set_ylabel('Amplitude')
+    ax3.set_xlabel('Time (s)')
+    ax3.legend(loc='upper right')
 
-    # X축 라벨링 (-2T, -T, 0, T, 2T ...)
-    xtick_labels = [f'{i}T' if i != 0 else '0' for i in n]
-    plt.xticks(t, xtick_labels, fontsize=11)
-
-    plt.title(r'Impulse Train $p(t) = \sum \delta(t - kT)$', fontsize=14)
-    plt.xlabel('Time (t)', fontsize=12)
-    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    for ax in [ax1, ax2, ax3]:
+        ax.grid(True, linestyle='--', alpha=0.6)
+        ax.axhline(0, color='black', linewidth=1)
 
     plt.tight_layout()
     plt.show()
 
-
 if __name__ == "__main__":
-    plot_impulse_train()
+    run_sampling_demo()
