@@ -42,7 +42,6 @@ def plot_sampling_process():
 
     # 파일 저장 및 출력
     plt.tight_layout()
-    plt.savefig('sampling_visualization.png')
     plt.show()
 
 
