@@ -55,11 +55,13 @@ y = signal.sosfilt(sos_real, x)
 
 fig, axes = plt.subplots(5, 1, figsize=(10 * scale, 18 * scale), dpi=90)
 
-axes[0].plot(f, ideal_filter, linewidth=2)
-axes[0].set_title("1. Ideal Filter")
+axes[0].plot(f, ideal_filter, linewidth=2, label="Ideal Filter")
+axes[0].plot(w_real, h_real_mag, linewidth=2, label=f"Real Filter (N={N_real})")
+axes[0].set_title("1. Ideal, Real Filter")
 axes[0].set_xlim(0, 40)
 axes[0].set_ylim(0, 1.2)
 axes[0].grid(True, linestyle="--", alpha=0.6)
+axes[0].legend()
 
 axes[1].plot(f, ideal_filter, linewidth=2, label="Ideal Response")
 axes[1].plot(w_real, h_real_mag, linewidth=2, label=f"Real Elliptic IIR (N={N_real})")
@@ -69,7 +71,7 @@ if np.isfinite(fp_eff) and np.isfinite(fs_eff) and fs_eff >= fp_eff:
     axes[1].text(
         (fp_eff + fs_eff) / 2,
         0.5,
-        f"Effective\nWidth = {fs_eff - fp_eff:.2f} Hz",
+        f"Transition\nBand = {fs_eff - fp_eff:.2f} Hz",
         fontsize=11,
         ha="center",
         fontweight="bold",

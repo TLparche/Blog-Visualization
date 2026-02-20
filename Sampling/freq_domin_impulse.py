@@ -86,7 +86,7 @@ def run_sampling_demo():
 
         axs[2, 1].plot(f_cont, X_s_f, 'r-', lw=1.5)
         axs[2, 1].fill_between(f_cont, 0, X_s_f, color='red', alpha=0.2)
-        axs[2, 1].set_title(r'Sampled Spectrum $X_s(f)$')
+        axs[2, 1].set_title(r'Sampled Spectrum $X_s(f)$ ,$f_s$: '+ str(fs) + 'Hz' )
         axs[2, 1].set_xlim(-f_max, f_max)
         axs[2, 1].set_ylim(0, 22)
         axs[2, 1].set_ylabel('Magnitude')
