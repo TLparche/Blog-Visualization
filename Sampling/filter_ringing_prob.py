@@ -13,8 +13,8 @@ f = np.linspace(0, 40, 4000)
 
 ideal_filter = (f <= B).astype(float)
 
-rp_real = 1
-rs_real = 30.0
+rp_real = 0.1
+rs_real = 100.0
 
 N_real, Wn_real = signal.ellipord(B, f_stop, rp_real, rs_real, fs=fs_sim)
 sos_real = signal.ellip(N_real, rp_real, rs_real, Wn_real, btype="low", fs=fs_sim, output="sos")
